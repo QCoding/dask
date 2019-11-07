@@ -26,7 +26,6 @@ def format_time(t):
 
 
 class ProgressBar(Callback):
-    VALID_STYLES = {'percent', 'count'}
     """A progress bar for dask.
 
     Parameters
@@ -71,6 +70,7 @@ class ProgressBar(Callback):
     >>> some_slow_computation.compute()     # doctest: +SKIP
     [########################################] | 100% Completed | 10.4 s
     """
+    VALID_STYLES = {'percent', 'count'}
 
     def __init__(self, minimum=0, width=40, dt=0.1, out=None, style='percent'):
         if style not in self.VALID_STYLES:
