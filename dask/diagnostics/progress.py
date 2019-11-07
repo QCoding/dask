@@ -105,7 +105,7 @@ class ProgressBar(Callback):
         if elapsed < self._minimum:
             return
         if not errored:
-            self._draw_bar(1, None, None, elapsed)
+            self._draw_bar(1, elapsed)
         else:
             self._update_bar(elapsed)
         self._file.write("\n")
@@ -122,22 +122,22 @@ class ProgressBar(Callback):
     def _update_bar(self, elapsed):
         s = self._state
         if not s:
-            self._draw_bar(0, None, None, elapsed)
+            self._draw_bar(0, elapsed)
             return
         ndone = len(s["finished"])
         ntasks = sum(len(s[k]) for k in ["ready", "waiting", "running"]) + ndone
         if ndone < ntasks:
-            self._draw_bar(ndone / ntasks, ndone, ntasks if ntasks else 0, elapsed)
+            self._draw_bar(ndone / ntasks, elapsed, ndone, ntasks if ntasks else 0)
 
-    def _draw_bar(self, frac, ndone, ntasks, elapsed):
+    def _draw_bar(self, frac, elapsed, ndone=None, ntasks=None):
         bar = "#" * int(self._width * frac)
         elapsed = format_time(elapsed)
 
         if self._style == 'percent':
             completed = "{}%".format(int(100 * frac))
         elif self._style == 'count':
-            if ndone is None:
-                completed = "all" if frac == 1 else "0"
+            if ndone is None or ntasks is None:
+                completed = "All" if frac == 1 else "None"
             else:
                 completed = "{}/{}".format(ndone, ntasks)
 

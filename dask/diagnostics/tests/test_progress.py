@@ -29,7 +29,7 @@ def test_array_compute(capsys):
     check_bar_completed(capsys)
 
 
-@pytest.mark.parametrize('style,completed_msg', [('percent', "100% Completed"), ('count', "all Completed")])
+@pytest.mark.parametrize('style,completed_msg', [('percent', "100% Completed"), ('count', "All Completed")])
 def test_progressbar(capsys, style, completed_msg):
     with ProgressBar():
         out = get_threaded(dsk, "e")
