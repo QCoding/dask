@@ -8,16 +8,15 @@ from dask.diagnostics import ProgressBar
 from dask.diagnostics.progress import format_time
 from dask.threaded import get as get_threaded
 
-
 dsk = {"a": 1, "b": 2, "c": (add, "a", "b"), "d": (mul, "a", "b"), "e": (mul, "c", "d")}
 
 
-def check_bar_completed(capsys, width=40):
+def check_bar_completed(capsys, width=40, completed_msg="100% Completed"):
     out, err = capsys.readouterr()
-    assert out.count("100% Completed") == 1
+    assert out.count(completed_msg) == 1
     bar, percent, time = [i.strip() for i in out.split("\r")[-1].split("|")]
     assert bar == "[" + "#" * width + "]"
-    assert percent == "100% Completed"
+    assert percent == completed_msg
 
 
 def test_array_compute(capsys):
@@ -30,14 +29,21 @@ def test_array_compute(capsys):
     check_bar_completed(capsys)
 
 
-def test_progressbar(capsys):
+@pytest.mark.parametrize('style,completed_msg', [('percent', "100% Completed"), ('count', "all Completed")])
+def test_progressbar(capsys, style, completed_msg):
     with ProgressBar():
         out = get_threaded(dsk, "e")
     assert out == 6
     check_bar_completed(capsys)
-    with ProgressBar(width=20):
+    with ProgressBar(width=20, style=style):
         out = get_threaded(dsk, "e")
-    check_bar_completed(capsys, 20)
+    check_bar_completed(capsys, 20, completed_msg=completed_msg)
+
+
+def test_invalid_style():
+    with pytest.raises(ValueError):
+        with ProgressBar(style='invalid'):
+            pass
 
 
 def test_minimum_time(capsys):

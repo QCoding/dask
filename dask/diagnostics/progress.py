@@ -26,6 +26,7 @@ def format_time(t):
 
 
 class ProgressBar(Callback):
+    VALID_STYLES = {'percent', 'count'}
     """A progress bar for dask.
 
     Parameters
@@ -71,13 +72,16 @@ class ProgressBar(Callback):
     [########################################] | 100% Completed | 10.4 s
     """
 
-    def __init__(self, minimum=0, width=40, dt=0.1, out=None):
+    def __init__(self, minimum=0, width=40, dt=0.1, out=None, style='percent'):
+        if style not in self.VALID_STYLES:
+            raise ValueError("{} is not a valid style, choose from {}".format(style, self.VALID_STYLES))
         if out is None:
             out = sys.stdout
         self._minimum = minimum
         self._width = width
         self._dt = dt
         self._file = out
+        self._style = style
         self.last_duration = 0
 
     def _start(self, dsk):
@@ -101,7 +105,7 @@ class ProgressBar(Callback):
         if elapsed < self._minimum:
             return
         if not errored:
-            self._draw_bar(1, elapsed)
+            self._draw_bar(1, None, None, elapsed)
         else:
             self._update_bar(elapsed)
         self._file.write("\n")
@@ -118,19 +122,27 @@ class ProgressBar(Callback):
     def _update_bar(self, elapsed):
         s = self._state
         if not s:
-            self._draw_bar(0, elapsed)
+            self._draw_bar(0, None, None, elapsed)
             return
         ndone = len(s["finished"])
         ntasks = sum(len(s[k]) for k in ["ready", "waiting", "running"]) + ndone
         if ndone < ntasks:
-            self._draw_bar(ndone / ntasks if ntasks else 0, elapsed)
+            self._draw_bar(ndone / ntasks, ndone, ntasks if ntasks else 0, elapsed)
 
-    def _draw_bar(self, frac, elapsed):
+    def _draw_bar(self, frac, ndone, ntasks, elapsed):
         bar = "#" * int(self._width * frac)
-        percent = int(100 * frac)
         elapsed = format_time(elapsed)
-        msg = "\r[{0:<{1}}] | {2}% Completed | {3}".format(
-            bar, self._width, percent, elapsed
+
+        if self._style == 'percent':
+            completed = "{}%".format(int(100 * frac))
+        elif self._style == 'count':
+            if ndone is None:
+                completed = "all" if frac == 1 else "0"
+            else:
+                completed = "{}/{}".format(ndone, ntasks)
+
+        msg = "\r[{0:<{1}}] | {2} Completed | {3}".format(
+            bar, self._width, completed, elapsed
         )
         with ignoring(ValueError):
             self._file.write(msg)
